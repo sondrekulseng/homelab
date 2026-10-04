@@ -2,5 +2,15 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended"
+  ],
+  "packageRules": [
+    {
+      "matchPackagePrefixes": [
+        "linuxserver/",
+        "ghcr.io/linuxserver/",
+        "lscr.io/linuxserver/"
+      ],
+      "allowedVersions": "<20.0.0"
+    }
   ]
 }
