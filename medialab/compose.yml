@@ -1,0 +1,165 @@
+services:
+  # Tailscale
+  tailscale:
+    image: tailscale/tailscale:v1.102.5
+    container_name: tailscale
+    hostname: homelab
+    ports:
+      - 8096:8096 # Jellyfin UI
+      - 7359:7359/udp # Service Discovery
+      - 1900:1900/udp # Client Discovery
+    env_file:
+      - ./tailscale/.env
+    volumes:
+      - ./tailscale/state:/var/lib/tailscale
+      - ./tailscale/serve.json:/etc/tailscale/serve.json:ro
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    restart: unless-stopped
+
+  # Media server
+  jellyfin:
+    image: linuxserver/jellyfin:12.1ubu2604-ls51
+    container_name: jellyfin
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./config:/config
+      - /mnt/external/Jellyfin:/media
+    devices:
+      - /dev/dri:/dev/dri # Use for Intel QuickSync
+    network_mode: service:tailscale
+    depends_on:
+      - tailscale
+    restart: unless-stopped
+
+  # Media discovery
+  seerr:
+    image: ghcr.io/seerr-team/seerr:v3.5.0
+    container_name: seerr
+    environment:
+      - TZ=${TZ}
+    volumes:
+      - ./seerr:/app/config
+    ports:
+      - 80:5055
+    depends_on:
+      jellyfin:
+        condition: service_started
+        restart: true
+      radarr:
+        condition: service_started
+        restart: true
+      sonarr:
+        condition: service_started
+        restart: true
+    restart: unless-stopped
+
+  # VPN
+  gluetun:
+    image: qmcgaw/gluetun:v3.41.3
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - 8080:8080 # qbittorrent web interface
+      - 6881:6881 # qbittorrent torrent port
+      - 9696:9696 # prowlarr
+    volumes:
+      - ./gluetun:/gluetun
+    environment:
+      - FIREWALL_VPN_INPUT_PORTS=${FIREWALL_VPN_INPUT_PORTS}
+    env_file:
+      - ./gluetun/.env
+    healthcheck:
+      test: ping -c 1 www.google.com || exit 1
+      interval: 20s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  # Torrent client
+  qbittorrent:
+    image: linuxserver/qbittorrent:5.2.4
+    container_name: qbittorrent
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - WEBUI_PORT=8080 # must match "qbittorrent web interface" port number in gluetun's service above
+      - TORRENTING_PORT=${FIREWALL_VPN_INPUT_PORTS} # airvpn forwarded port, pulled from .env
+    volumes:
+      - ./qbittorrent:/config
+      - ../downloads:/data
+      - /mnt/external/Jellyfin:/media
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    network_mode: service:gluetun
+    restart: unless-stopped
+
+  # Central indexer
+  prowlarr:
+    image: linuxserver/prowlarr:2.6.5
+    container_name: prowlarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./prowlarr:/config
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    network_mode: service:gluetun
+    restart: unless-stopped
+
+  # TV shows
+  sonarr:
+    image: linuxserver/sonarr:4.0.20
+    container_name: sonarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./sonarr:/config
+      - ../downloads:/downloads
+    ports:
+      - 8989:8989
+    depends_on:
+      qbittorrent:
+        condition: service_started
+        restart: true
+    restart: unless-stopped
+
+  # Movies
+  radarr:
+    image: lscr.io/linuxserver/radarr:6.4.4
+    container_name: radarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./radarr:/config
+      - ../downloads:/downloads
+      - /mnt/external/Jellyfin:/media
+    ports:
+      - 7878:7878
+    depends_on:
+      qbittorrent:
+        condition: service_started
+        restart: true
+    restart: unless-stopped
