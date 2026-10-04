@@ -86,7 +86,7 @@ services:
 
   # Torrent client
   qbittorrent:
-    image: linuxserver/qbittorrent:5.2.4
+    image: linuxserver/qbittorrent:20.04.1
     container_name: qbittorrent
     environment:
       - PUID=${PUID}
