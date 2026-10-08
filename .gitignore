@@ -7,3 +7,4 @@
 # Include these files
 !compose.yml
 !.gitignore
+!README.md
