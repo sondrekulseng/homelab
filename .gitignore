@@ -1,0 +1,9 @@
+# Ignore everything
+*
+
+# Except directories
+!*/
+
+# Include these files
+!compose.yml
+!.gitignore

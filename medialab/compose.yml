@@ -1,28 +1,13 @@
-services:
-  # Tailscale
-  tailscale:
-    image: tailscale/tailscale:v1.102.5
-    container_name: tailscale
-    hostname: homelab
-    ports:
-      - 8096:8096 # Jellyfin UI
-      - 7359:7359/udp # Service Discovery
-      - 1900:1900/udp # Client Discovery
-    env_file:
-      - ./tailscale/.env
-    volumes:
-      - ./tailscale/state:/var/lib/tailscale
-      - ./tailscale/serve.json:/etc/tailscale/serve.json:ro
-      - /dev/net/tun:/dev/net/tun
-    cap_add:
-      - NET_ADMIN
-      - NET_RAW
-    restart: unless-stopped
+include:
+  - ../infra/compose.yml
 
+services:
   # Media server
   jellyfin:
     image: lscr.io/linuxserver/jellyfin:12.1ubu2604-ls51
     container_name: jellyfin
+    ports:
+      - "8096:8096/tcp"
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
@@ -32,12 +17,35 @@ services:
       - /mnt/external/Jellyfin:/media
     devices:
       - /dev/dri:/dev/dri # Use for Intel QuickSync
-    network_mode: service:tailscale
-    depends_on:
-      - tailscale
     restart: unless-stopped
+    profiles: [media, media-slim]
 
-  # Media discovery
+  # VPN
+  gluetun:
+    image: qmcgaw/gluetun:v3.41.3
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - "8080:8080/tcp" # qbittorrent web interface
+      - "9696:9696/tcp" # prowlarr
+    volumes:
+      - ./gluetun:/gluetun
+    environment:
+      - FIREWALL_VPN_INPUT_PORTS=${FIREWALL_VPN_INPUT_PORTS}
+    env_file:
+      - ./gluetun/.env
+    healthcheck:
+      test: ping -c 1 www.google.com || exit 1
+      interval: 20s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    profiles: [media]
+
+ # Media discovery
   seerr:
     image: ghcr.io/seerr-team/seerr:v3.5.0
     container_name: seerr
@@ -58,31 +66,7 @@ services:
         condition: service_started
         restart: true
     restart: unless-stopped
-
-  # VPN
-  gluetun:
-    image: qmcgaw/gluetun:v3.41.3
-    container_name: gluetun
-    cap_add:
-      - NET_ADMIN
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    ports:
-      - 8080:8080 # qbittorrent web interface
-      - 6881:6881 # qbittorrent torrent port
-      - 9696:9696 # prowlarr
-    volumes:
-      - ./gluetun:/gluetun
-    environment:
-      - FIREWALL_VPN_INPUT_PORTS=${FIREWALL_VPN_INPUT_PORTS}
-    env_file:
-      - ./gluetun/.env
-    healthcheck:
-      test: ping -c 1 www.google.com || exit 1
-      interval: 20s
-      timeout: 10s
-      retries: 5
-    restart: unless-stopped
+    profiles: [media]
 
   # Torrent client
   qbittorrent:
@@ -96,7 +80,7 @@ services:
       - TORRENTING_PORT=${FIREWALL_VPN_INPUT_PORTS} # airvpn forwarded port, pulled from .env
     volumes:
       - ./qbittorrent:/config
-      - ../downloads:/data
+      - ./data:/data
       - /mnt/external/Jellyfin:/media
     depends_on:
       gluetun:
@@ -104,6 +88,7 @@ services:
         restart: true
     network_mode: service:gluetun
     restart: unless-stopped
+    profiles: [media]
 
   # Central indexer
   prowlarr:
@@ -122,6 +107,7 @@ services:
         restart: true
     network_mode: service:gluetun
     restart: unless-stopped
+    profiles: [media]
 
   # TV shows
   sonarr:
@@ -134,7 +120,7 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ./sonarr:/config
-      - ../downloads:/downloads
+      - ./data:/data
     ports:
       - 8989:8989
     depends_on:
@@ -142,6 +128,7 @@ services:
         condition: service_started
         restart: true
     restart: unless-stopped
+    profiles: [media]
 
   # Movies
   radarr:
@@ -154,8 +141,7 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ./radarr:/config
-      - ../downloads:/downloads
-      - /mnt/external/Jellyfin:/media
+      - ./data:/data
     ports:
       - 7878:7878
     depends_on:
@@ -163,3 +149,4 @@ services:
         condition: service_started
         restart: true
     restart: unless-stopped
+    profiles: [media]
