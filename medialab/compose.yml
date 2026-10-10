@@ -121,6 +121,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - ./sonarr:/config
       - ./data:/data
+      - /mnt/external/Jellyfin/Series:/series
     ports:
       - 8989:8989
     depends_on:
@@ -142,6 +143,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - ./radarr:/config
       - ./data:/data
+      - /mnt/external/Jellyfin/Movies:/movies
     ports:
       - 7878:7878
     depends_on:
