@@ -75,8 +75,25 @@ services:
   silverbullet:
     image: ghcr.io/silverbulletmd/silverbullet:2.12.1-slim
     container_name: silverbullet
-    restart: unless-stopped
     volumes:
       - ./silverbullet:/data
     ports:
       - 3000:3000
+    restart: unless-stopped
+   
+  # Home assistant
+  homeassistant:
+    container_name: homeassistant
+    image: ghcr.io/home-assistant/home-assistant:2026.10.2
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Oslo
+    volumes:
+      - ./homeassistant:/config
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "8123:8123/tcp"
+      - "6667:6667/udp"
+      - "6666:6666/udp"
+      - "7000:7000/udp"
+    profiles: [infra]
