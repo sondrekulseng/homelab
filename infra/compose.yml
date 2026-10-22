@@ -51,7 +51,7 @@ services:
 
   # Notification service
   ntfy:
-    image: binwiederhier/ntfy:v2.30.0
+    image: binwiederhier/ntfy:v2.32.0
     container_name: ntfy
     command:
       - serve
