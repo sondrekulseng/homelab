@@ -84,7 +84,7 @@ services:
   # Home assistant
   homeassistant:
     container_name: homeassistant
-    image: ghcr.io/home-assistant/home-assistant:2026.10.2
+    image: ghcr.io/home-assistant/home-assistant:2026.10.3
     restart: unless-stopped
     environment:
       - TZ=Europe/Oslo
