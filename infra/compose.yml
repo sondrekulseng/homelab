@@ -33,7 +33,7 @@ services:
         ipv4_address: 172.30.50.2
     ports:
       # DNS port
-      - "53:53"
+      - "53:53/udp"
       # HTTP Port
       - "81:81/tcp"
     env_file:
@@ -97,3 +97,29 @@ services:
       - "6666:6666/udp"
       - "7000:7000/udp"
     profiles: [infra]
+
+  # OpenCloud
+  opencloud:
+    container_name: opencloud
+    image: opencloudeu/opencloud-rolling:8.1.0
+    entrypoint: ["/bin/sh"]
+    command: ["-c", "opencloud init || true; opencloud server"]
+    environment:
+      OC_URL: https://192.168.0.10:9200
+      OCIS_URL: https://192.168.0.10:9200
+      OC_INSECURE: true
+      IDM_ADMIN_PASSWORD: "12345"
+      # Euro office
+      COMPOSE_FILE: docker-compose.yml:weboffice/euro-office.yml:traefik/opencloud.yml:traefik/euroffice.yml
+      EURO_OFFICE_DOMAIN: euro-office
+      EURO_OFFICE_JWT_SECRET: change-me
+    volumes:
+      - ./opencloud/config:/etc/opencloud
+      - ./test:/var/lib/opencloud
+    ports:
+      - "9200:9200"
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    profiles: [infra]
+
