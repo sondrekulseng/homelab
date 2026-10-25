@@ -21,6 +21,9 @@ services:
       - /dev/net/tun:/dev/net/tun
     cap_add:
       - NET_ADMIN
+    networks:
+      default:
+        ipv4_address: 172.30.50.3
     restart: unless-stopped
     profiles: [infra, media-slim]
 
@@ -77,10 +80,8 @@ services:
     container_name: silverbullet
     volumes:
       - ./silverbullet:/data
-    ports:
-      - 3000:3000
     restart: unless-stopped
-   
+
   # Home assistant
   homeassistant:
     container_name: homeassistant
@@ -92,7 +93,6 @@ services:
       - ./homeassistant:/config
       - /etc/localtime:/etc/localtime:ro
     ports:
-      - "8123:8123/tcp"
       - "6667:6667/udp"
       - "6666:6666/udp"
       - "7000:7000/udp"
@@ -105,21 +105,65 @@ services:
     entrypoint: ["/bin/sh"]
     command: ["-c", "opencloud init || true; opencloud server"]
     environment:
-      OC_URL: https://192.168.0.10:9200
-      OCIS_URL: https://192.168.0.10:9200
-      OC_INSECURE: true
-      IDM_ADMIN_PASSWORD: "12345"
-      # Euro office
-      COMPOSE_FILE: docker-compose.yml:weboffice/euro-office.yml:traefik/opencloud.yml:traefik/euroffice.yml
-      EURO_OFFICE_DOMAIN: euro-office
-      EURO_OFFICE_JWT_SECRET: change-me
+      OC_URL: ${CLOUD_DOMAIN_HTTPS}
+      OCIS_URL: ${CLOUD_DOMAIN_HTTPS}
+      OC_INSECURE: false
+      PROXY_TLS: true
+      IDM_ADMIN_PASSWORD: ${IDM_ADMIN_PASSWORD}
+      PROXY_CSP_CONFIG_FILE_LOCATION: /etc/opencloud/csp.yaml
+      # Euro-Office
+      EURO_OFFICE_DOMAIN: ${EURO_OFFICE_DOMAIN_HTTPS}
+      OC_ADD_RUN_SERVICES: collaboration
+      COLLABORATION_WOPI_SRC: ${CLOUD_DOMAIN_HTTPS}
+      COLLABORATION_APP_NAME: Euro-Office
+      COLLABORATION_APP_PRODUCT: OnlyOffice
+      COLLABORATION_APP_ADDR: ${EURO_OFFICE_DOMAIN_HTTPS}
+      COLLABORATION_APP_ICON: ${EURO_OFFICE_DOMAIN_HTTPS}/web-apps/apps/documenteditor/main/resources/img/favicon.ico
+      COLLABORATION_APP_INSECURE: false
+      COLLABORATION_CS3API_DATAGATEWAY_INSECURE: false
+      COLLABORATION_APP_PROOF_DISABLE: true
+      EURO_OFFICE_JWT_SECRET: ${JWT_SECRET}
     volumes:
       - ./opencloud/config:/etc/opencloud
       - ./test:/var/lib/opencloud
-    ports:
-      - "9200:9200"
     security_opt:
       - no-new-privileges:true
+    networks:
+      default:
+        ipv4_address: 172.30.50.4
     restart: unless-stopped
     profiles: [infra]
 
+  euro-office:
+    container_name: euro-office
+    image: ghcr.io/euro-office/documentserver:v9.3.7
+    environment:
+      WOPI_ENABLED: true
+      USE_UNAUTHORIZED_STORAGE: false
+      JWT_SECRET: ${JWT_SECRET}
+      VIRTUAL_HOST: ${EURO_OFFICE_DOMAIN}
+      VIRTUAL_PORT: 80
+    networks:
+      default:
+        ipv4_address: 172.30.50.5
+    restart: unless-stopped
+    profiles: [infra]
+
+  nginx-proxy:
+    container_name: nginx-proxy
+    image: jc21/nginx-proxy-manager:2.16.0
+    ports:
+      - "80:80/tcp"
+      - "443:443/tcp"
+      # Proxy Manager Admin Web UI port
+      - "83:81/tcp"
+    environment:
+      DISABLE_IPV6: false
+    networks:
+      default:
+        ipv4_address: 172.30.50.10
+    volumes:
+      - ./npm/data:/data
+      - ./npm/letsencrypt:/etc/letsencrypt
+    profiles: [infra]
+    restart: unless-stopped
