@@ -60,17 +60,14 @@ services:
       - serve
     environment:
       - TZ=${TZ}
-      - NTFY_BASE_URL=${TAILSCALE_URL}
-      - NTFY_LISTEN_HTTP=:80
-      - NTFY_BEHIND_PROXY=false
+      - NTFY_BASE_URL=${NTFY_BASE_URL}
+      - NTFY_BEHIND_PROXY=true
       - NTFY_UPSTREAM_BASE_URL=https://ntfy.sh
       - NTFY_AUTH_DEFAULT_ACCESS=deny-all
     user: ${PUID}:${PGID}
     volumes:
       - /var/cache/ntfy:/var/cache/ntfy
       - /etc/ntfy:/etc/ntfy
-    ports:
-      - 82:80
     restart: unless-stopped
     profiles: [infra, media]
 
