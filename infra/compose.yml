@@ -90,6 +90,7 @@ services:
       - ./homeassistant:/config
       - /etc/localtime:/etc/localtime:ro
     ports:
+      - "8123:8123/tcp"
       - "6667:6667/udp"
       - "6666:6666/udp"
       - "7000:7000/udp"
