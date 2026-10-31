@@ -117,7 +117,7 @@ services:
   # OpenCloud
   opencloud:
     container_name: opencloud
-    image: opencloudeu/opencloud-rolling:8.1.0
+    image: opencloudeu/opencloud-rolling:9.0.0
     entrypoint: ["/bin/sh"]
     command: ["-c", "opencloud init || true; opencloud server"]
     environment:
