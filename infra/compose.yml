@@ -70,7 +70,7 @@ services:
 
   # Notification service
   ntfy:
-    image: binwiederhier/ntfy:v2.37.1
+    image: binwiederhier/ntfy:v2.37.2
     container_name: ntfy
     command:
       - serve
