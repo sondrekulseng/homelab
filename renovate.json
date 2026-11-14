@@ -3,14 +3,13 @@
   "extends": [
     "config:recommended"
   ],
+  "minimumReleaseAge": "3 days",
   "packageRules": [
     {
-      "matchPackagePrefixes": [
-        "linuxserver/",
-        "ghcr.io/linuxserver/",
-        "lscr.io/linuxserver/"
+      "matchPackageNames": [
+        "lscr.io/linuxserver/jellyfin"
       ],
-      "allowedVersions": "<20.0.0"
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)(?:\\.(?<patch>\\d+))?ubu(?<compatibility>\\d+)-ls(?<build>\\d+)$"
     }
   ]
 }
