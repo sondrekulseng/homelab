@@ -120,6 +120,7 @@ services:
     image: opencloudeu/opencloud-rolling:9.1.0
     entrypoint: ["/bin/sh"]
     command: ["-c", "opencloud init || true; opencloud server"]
+    user: "1000:1000"
     environment:
       OC_URL: ${CLOUD_DOMAIN_HTTPS}
       OCIS_URL: ${CLOUD_DOMAIN_HTTPS}
@@ -141,7 +142,8 @@ services:
       EURO_OFFICE_JWT_SECRET: ${JWT_SECRET}
     volumes:
       - ./opencloud/config:/etc/opencloud
-      - ./test:/var/lib/opencloud
+      - ./opencloud/data:/var/lib/opencloud
+      - /mnt/external/opencloud:/var/lib/opencloud/storage/users
     security_opt:
       - no-new-privileges:true
     networks:
