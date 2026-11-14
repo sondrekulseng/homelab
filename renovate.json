@@ -10,6 +10,12 @@
         "lscr.io/linuxserver/jellyfin"
       ],
       "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)(?:\\.(?<patch>\\d+))?ubu(?<compatibility>\\d+)-ls(?<build>\\d+)$"
+    },
+    {
+      "matchPackageNames": [
+        "lscr.io/linuxserver/qbittorrent"
+      ],
+      "allowedVersions": "<20.0.0"
     }
   ]
 }
