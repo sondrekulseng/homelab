@@ -67,6 +67,7 @@ services:
       retries: 3
       start_period: 30s
     restart: unless-stopped
+    profiles: [infra]
 
   # Notification service
   ntfy:
@@ -87,14 +88,6 @@ services:
     restart: unless-stopped
     profiles: [infra, media]
 
-  # Notes app
-  silverbullet:
-    image: ghcr.io/silverbulletmd/silverbullet:2.12.1-slim
-    container_name: silverbullet
-    volumes:
-      - ./silverbullet:/data
-    restart: unless-stopped
-
   # Home assistant
   homeassistant:
     container_name: homeassistant
@@ -113,6 +106,15 @@ services:
       - "6666:6666/udp"
       - "7000:7000/udp"
     profiles: [infra]
+
+  # Notes app
+  silverbullet:
+    image: ghcr.io/silverbulletmd/silverbullet:2.12.1-slim
+    container_name: silverbullet
+    volumes:
+      - ./silverbullet:/data
+    restart: unless-stopped
+    profiles: [cloud, cloud-slim]
 
   # OpenCloud
   opencloud:
@@ -150,8 +152,9 @@ services:
       default:
         ipv4_address: 172.30.50.3
     restart: unless-stopped
-    profiles: [infra]
+    profiles: [cloud, cloud-slim]
 
+  # Document viewer for OpenCloud
   euro-office:
     container_name: euro-office
     image: ghcr.io/euro-office/documentserver:v9.3.8
@@ -165,5 +168,4 @@ services:
       default:
         ipv4_address: 172.30.50.4
     restart: unless-stopped
-    profiles: [infra]
-
+    profiles: [cloud]
