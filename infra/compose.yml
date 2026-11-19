@@ -34,7 +34,7 @@ services:
   # Proxy
   nginx-proxy:
     container_name: nginx-proxy
-    image: jc21/nginx-proxy-manager:2.17.0
+    image: jc21/nginx-proxy-manager:2.17.1
     ports:
       - "80:80/tcp"
       - "443:443/tcp"
